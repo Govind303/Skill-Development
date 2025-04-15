@@ -1,0 +1,56 @@
+import os
+import gradio as gr
+from langchain.llms import LlamaCpp
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
+# Path to your local GGUF model
+model_path = "./models/mistral-7b.Q4_K_M.gguf"
+
+if not os.path.exists(model_path):
+    raise FileNotFoundError("Model not found. Please download a GGUF model.")
+
+# Load the local model
+llm = LlamaCpp(
+    model_path=model_path,
+    temperature=0.5,
+    max_tokens=512,
+    n_ctx=2048,
+    verbose=False
+)
+
+# Prompt for medical diagnosis
+template = """
+You are a helpful and knowledgeable AI medical assistant.
+A user has provided the following symptoms:
+
+"{symptoms}"
+
+Based on this, list the top 3 possible medical conditions (from most likely to less likely), and explain why.
+Also suggest next steps (e.g., see a doctor, lab tests, etc.).
+Be clear, informative, and cautious — remind that this is not a professional diagnosis.
+"""
+
+prompt = PromptTemplate(
+    input_variables=["symptoms"],
+    template=template
+)
+
+chain = LLMChain(llm=llm, prompt=prompt)
+
+# Gradio function
+def diagnose(symptoms):
+    if not symptoms.strip():
+        return "Please describe your symptoms."
+    response = chain.run(symptoms=symptoms)
+    return response.strip()
+
+# Gradio UI
+gr.Interface(
+    fn=diagnose,
+    inputs=gr.Textbox(lines=4, placeholder="e.g., sore throat, fever, and fatigue", label="Describe Symptoms"),
+    outputs=gr.Textbox(label="Possible Diagnoses & Suggestions"),
+    title="🩺 AI Medical Diagnosis Assistant",
+    description="Enter your symptoms to get AI-powered insights. This tool provides possible conditions and helpful next steps — not a substitute for medical advice.",
+    theme="default"
+).launch()
