@@ -1,0 +1,34 @@
+!pip install transformers gradio sentencepiece
+
+from transformers import MarianMTModel, MarianTokenizer
+import gradio as gr
+
+# Supported languages (extendable)
+lang_pairs = {
+    "English to French": "Helsinki-NLP/opus-mt-en-fr",
+    "French to English": "Helsinki-NLP/opus-mt-fr-en",
+    "English to German": "Helsinki-NLP/opus-mt-en-de",
+    "German to English": "Helsinki-NLP/opus-mt-de-en",
+    "English to Spanish": "Helsinki-NLP/opus-mt-en-es",
+    "Spanish to English": "Helsinki-NLP/opus-mt-es-en",
+}
+
+# Translate function
+def translate_text(text, direction):
+    model_name = lang_pairs[direction]
+    tokenizer = MarianTokenizer.from_pretrained(model_name)
+    model = MarianMTModel.from_pretrained(model_name)
+    translated = model.generate(**tokenizer(text, return_tensors="pt", padding=True))
+    return tokenizer.decode(translated[0], skip_special_tokens=True)
+
+# Gradio Interface
+gr.Interface(
+    fn=translate_text,
+    inputs=[
+        gr.Textbox(lines=4, label="Input Text"),
+        gr.Dropdown(choices=list(lang_pairs.keys()), label="Translation Direction")
+    ],
+    outputs=gr.Textbox(label="Translated Text"),
+    title="Simple Translator",
+    description="Choose a language pair and enter text to translate using a pre-trained MarianMT model."
+).launch()
