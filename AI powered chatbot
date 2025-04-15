@@ -1,0 +1,53 @@
+import os
+import subprocess
+import sys  # Add this import to fix the error
+
+# Install necessary packages
+def install_packages():
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "langchain", "llama-cpp-python", "gradio"])
+
+# Run the installation if not already installed
+try:
+    import langchain
+    import llama_cpp
+    import gradio
+except ImportError:
+    install_packages()
+
+import gradio as gr
+from langchain.llms import LlamaCpp
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationBufferMemory
+
+# Set the path to the downloaded LLaMA model (adjust this according to your model location)
+model_path = "./models/llama-2-7b.bin"  # Example path, change as needed
+
+# Check if the model exists before running
+if not os.path.exists(model_path):
+    raise FileNotFoundError(f"LLaMA model not found at {model_path}. Please download and place the model in the specified path.")
+
+# Initialize LLaMA model with LlamaCpp
+llm = LlamaCpp(model_path=model_path, temperature=0.7, max_tokens=200)
+
+# Setup memory for conversation
+memory = ConversationBufferMemory()
+
+# Create the conversation chain with the LLaMA model and memory
+conversation = ConversationChain(
+    llm=llm,
+    memory=memory,
+    verbose=True
+)
+
+# Define the function for interactive Q&A
+def chat(user_input):
+    return conversation.run(user_input)
+
+# Gradio interface to chat with the bot
+gr.Interface(
+    fn=chat,
+    inputs=gr.Textbox(lines=2, placeholder="Say something...", label="User"),
+    outputs=gr.Textbox(label="Bot"),
+    title="LLaMA Local Chatbot",
+    description="Conversational chatbot using LangChain with a local LLaMA model (LlamaCpp)."
+).launch()
