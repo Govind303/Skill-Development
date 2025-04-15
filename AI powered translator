@@ -1,0 +1,68 @@
+import os
+import gradio as gr
+from langchain.llms import LlamaCpp
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
+# Path to your local gguf model file
+model_path = "./models/mistral-7b.Q4_K_M.gguf"  # Change to match your setup
+
+# Check model existence
+if not os.path.exists(model_path):
+    raise FileNotFoundError(f"Model not found at: {model_path}")
+
+# Load the local LLM
+llm = LlamaCpp(
+    model_path=model_path,
+    temperature=0.3,
+    max_tokens=512,
+    n_ctx=2048,
+    verbose=False
+)
+
+# LangChain prompt for translation
+template = """
+You are a professional language translator.
+Translate this text from {source_lang} to {target_lang}:
+
+"{text}"
+
+Only return the translated version, nothing else.
+"""
+
+prompt = PromptTemplate(
+    input_variables=["source_lang", "target_lang", "text"],
+    template=template
+)
+
+translator_chain = LLMChain(llm=llm, prompt=prompt)
+
+# Translator function
+def translate(text, source_lang, target_lang):
+    if not text.strip():
+        return "Please enter some text to translate."
+    result = translator_chain.run({
+        "source_lang": source_lang,
+        "target_lang": target_lang,
+        "text": text
+    })
+    return result.strip()
+
+# Supported languages
+languages = [
+    "English", "Spanish", "French", "German", "Italian", "Chinese", "Arabic",
+    "Russian", "Hindi", "Japanese", "Portuguese", "Korean", "Turkish"
+]
+
+# Gradio UI
+gr.Interface(
+    fn=translate,
+    inputs=[
+        gr.Textbox(lines=5, placeholder="Enter text to translate...", label="Input Text"),
+        gr.Dropdown(languages, label="From", value="English"),
+        gr.Dropdown(languages, label="To", value="Spanish")
+    ],
+    outputs=gr.Textbox(label="Translated Output"),
+    title="🔁 Offline AI Language Translator",
+    description="Real-time multilingual translation using LangChain + Local LLM (Mistral/LLaMA). No internet or API needed!"
+).launch()
