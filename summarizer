@@ -1,0 +1,23 @@
+!pip install transformers gradio
+
+from transformers import pipeline
+import gradio as gr
+
+# Load summarization pipeline
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+# Summarization function
+def summarize_text(text):
+    if len(text.strip()) == 0:
+        return "Please enter some text to summarize."
+    summary = summarizer(text, max_length=130, min_length=30, do_sample=False)
+    return summary[0]['summary_text']
+
+# Gradio Interface
+gr.Interface(
+    fn=summarize_text,
+    inputs=gr.Textbox(lines=10, label="Enter text to summarize"),
+    outputs=gr.Textbox(label="Summary"),
+    title="Text Summarizer",
+    description="This app summarizes long text into a shorter version using a pre-trained model."
+).launch()
