@@ -1,0 +1,51 @@
+!pip install gradio scikit-learn pandas
+
+import gradio as gr
+import pandas as pd
+from sklearn.datasets import fetch_california_housing
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Load dataset
+data = fetch_california_housing()
+df = pd.DataFrame(data.data, columns=data.feature_names)
+df = df.drop(columns=['Latitude', 'Longitude'])  # Remove Lat/Lon
+X = df
+y = (data.target > data.target.mean()).astype(int)  # Expensive = 1 if above average
+
+# Scale features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Train Logistic Regression model
+model = LogisticRegression()
+model.fit(X_scaled, y)
+
+# Prediction function
+def predict_expensive(MedInc, HouseAge, AveRooms, AveBedrms, Population, AveOccup):
+    input_data = pd.DataFrame([[MedInc, HouseAge, AveRooms, AveBedrms, Population, AveOccup]],
+                              columns=X.columns)
+    input_scaled = scaler.transform(input_data)
+    prediction = model.predict(input_scaled)[0]
+    proba = model.predict_proba(input_scaled)[0][1]
+    label = "Expensive" if prediction == 1 else "Affordable"
+    return f"{label} (Confidence: {proba * 100:.2f}%)"
+
+# Gradio UI
+inputs = [
+    gr.Number(label="Median Income (MedInc)"),
+    gr.Number(label="House Age"),
+    gr.Number(label="Average Rooms (AveRooms)"),
+    gr.Number(label="Average Bedrooms (AveBedrms)"),
+    gr.Number(label="Population"),
+    gr.Number(label="Average Occupancy (AveOccup)")
+]
+
+gr.Interface(
+    fn=predict_expensive,
+    inputs=inputs,
+    outputs=gr.Textbox(label="Prediction"),
+    title="Housing Price Classifier (No Latitude/Longitude)",
+    description="Predicts if a house is Expensive or Affordable using Logistic Regression (based on core features only)."
+).launch()
