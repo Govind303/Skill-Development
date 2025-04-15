@@ -1,0 +1,58 @@
+!pip install gradio tensorflow
+
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+import gradio as gr
+
+# Sample training data (Age, Income)
+X = np.array([
+    [20, 20000],
+    [25, 25000],
+    [30, 30000],
+    [35, 35000],
+    [40, 40000],
+    [45, 45000],
+    [50, 50000],
+    [55, 55000],
+])
+y = np.array([0, 0, 0, 0, 1, 1, 1, 1])  # 0 = won't buy, 1 = will buy
+
+# Normalize inputs
+X = X / np.max(X, axis=0)
+
+# Build ANN model
+model = Sequential([
+    Dense(8, input_dim=2, activation='relu'),
+    Dense(4, activation='relu'),
+    Dense(1, activation='sigmoid')  # Output layer for binary classification
+])
+
+# Compile model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train model
+model.fit(X, y, epochs=200, verbose=0)
+
+# Define prediction function
+def predict_purchase(age, income):
+    input_data = np.array([[age, income]]) / np.max(X, axis=0)
+    pred = model.predict(input_data, verbose=0)[0][0]
+    result = "Will Buy 🛍️" if pred >= 0.5 else "Won't Buy 🚫"
+    return f"{result} (Probability: {pred:.2f})"
+
+# Gradio interface
+iface = gr.Interface(
+    fn=predict_purchase,
+    inputs=[
+        gr.Number(label="Age"),
+        gr.Number(label="Income"),
+    ],
+    outputs=gr.Textbox(label="Prediction"),
+    title="ANN Buyer Predictor",
+    description="Predicts if a user will buy a product based on age and income."
+)
+
+iface.launch()
