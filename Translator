@@ -1,0 +1,22 @@
+# Import the necessary library
+from googletrans import Translator
+
+# Initialize the Translator object
+translator = Translator()
+
+# Function to translate text
+def translate_text(text, target_language):
+    # Translate the text to the target language
+    translation = translator.translate(text, dest=target_language)
+    return translation.text
+
+# User input for text and target language
+print("Welcome to the Language Translator!")
+source_text = input("Enter the text you want to translate: ")
+target_lang = input("Enter the target language code (e.g., 'en' for English, 'es' for Spanish, 'fr' for French, etc.): ")
+
+# Translate the text
+translated_text = translate_text(source_text, target_lang)
+
+# Display the translated text
+print(f"\nTranslated Text: {translated_text}")
