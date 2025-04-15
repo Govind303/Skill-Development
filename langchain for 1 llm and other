@@ -1,0 +1,50 @@
+from langchain.llms import LlamaCpp
+from langchain.chains import SimpleSequentialChain
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
+# Local LLM
+llm = LlamaCpp(
+    model_path="./models/mistral-7b.Q4_K_M.gguf",
+    temperature=0.5,
+    max_tokens=512,
+    n_ctx=2048,
+    verbose=False
+)
+
+# Step 1: LLM generates a paragraph
+prompt_1 = PromptTemplate(
+    input_variables=["topic"],
+    template="Write a short professional summary about {topic}."
+)
+chain_1 = LLMChain(llm=llm, prompt=prompt_1)
+
+# Step 2: Python function for keyword extraction (simulating another logic layer)
+def extract_keywords(text):
+    import re
+    words = re.findall(r'\b[a-zA-Z]{6,}\b', text)
+    return ", ".join(sorted(set(words)))  # just an example
+
+# Wrap it in a LangChain-compatible tool
+from langchain.chains.base import Chain
+
+class KeywordChain(Chain):
+    @property
+    def input_keys(self): return ["text"]
+    @property
+    def output_keys(self): return ["keywords"]
+
+    def _call(self, inputs, run_manager=None):
+        return {"keywords": extract_keywords(inputs["text"])}
+
+chain_2 = KeywordChain()
+
+# Combine both into a sequence
+overall_chain = SimpleSequentialChain(
+    chains=[chain_1, chain_2],
+    verbose=True
+)
+
+# Run the chain
+result = overall_chain.run("Artificial Intelligence in Healthcare")
+print("📌 Keywords:", result)
