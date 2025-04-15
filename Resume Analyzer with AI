@@ -1,0 +1,71 @@
+import os
+import gradio as gr
+import fitz  # PyMuPDF
+from langchain.llms import LlamaCpp
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+
+# Load local LLM (like Mistral 7B)
+model_path = "./models/mistral-7b.Q4_K_M.gguf"  # Change to your model
+
+if not os.path.exists(model_path):
+    raise FileNotFoundError("Model file not found. Download GGUF model and update path.")
+
+llm = LlamaCpp(
+    model_path=model_path,
+    temperature=0.3,
+    max_tokens=1024,
+    n_ctx=2048,
+    verbose=False
+)
+
+# Prompt Template
+prompt_template = PromptTemplate(
+    input_variables=["resume_text"],
+    template="""
+You are a professional career advisor and resume evaluator.
+
+Here is a candidate's resume:
+
+{resume_text}
+
+Provide the following:
+1. Key strengths
+2. Weak areas or gaps
+3. Suggestions to improve
+4. Overall feedback
+
+Be professional and helpful in your response.
+"""
+)
+
+# LangChain Chain
+chain = LLMChain(llm=llm, prompt=prompt_template)
+
+# PDF text extractor
+def extract_text_from_pdf(pdf_file):
+    text = ""
+    with fitz.open(stream=pdf_file.read(), filetype="pdf") as doc:
+        for page in doc:
+            text += page.get_text()
+    return text.strip()
+
+# Gradio processing function
+def analyze_resume(file):
+    if file is None:
+        return "Please upload a resume (PDF)."
+    text = extract_text_from_pdf(file)
+    if not text:
+        return "Could not extract text from resume."
+    result = chain.run(resume_text=text)
+    return result.strip()
+
+# Gradio Interface
+gr.Interface(
+    fn=analyze_resume,
+    inputs=gr.File(label="Upload Resume (PDF)", type="binary"),
+    outputs=gr.Textbox(label="AI Analysis & Feedback"),
+    title="📄 AI Resume Analyzer",
+    description="Upload your resume and get instant feedback and improvement suggestions using AI. Fully offline & private!",
+    theme="default"
+).launch()
