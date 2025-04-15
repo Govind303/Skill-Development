@@ -1,0 +1,23 @@
+import gradio as gr
+from transformers import pipeline
+
+# Load the summarization pipeline
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+# Summarization function
+def summarize_article(article_text):
+    if not article_text.strip():
+        return "Please enter a valid article."
+    
+    summary = summarizer(article_text, max_length=130, min_length=30, do_sample=False)
+    return summary[0]['summary_text']
+
+# Gradio interface
+gr.Interface(
+    fn=summarize_article,
+    inputs=gr.Textbox(lines=20, placeholder="Paste a news article here...", label="News Article"),
+    outputs=gr.Textbox(label="Summary"),
+    title="📰 AI News Summarizer",
+    description="Paste any news article below and get a clear, concise summary using a powerful AI model.",
+    theme="default"
+).launch()
