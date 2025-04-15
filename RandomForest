@@ -1,0 +1,45 @@
+!pip install gradio
+
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+import gradio as gr
+
+# Sample training data (age, cholesterol)
+X = np.array([
+    [25, 180],
+    [30, 200],
+    [35, 220],
+    [40, 240],
+    [45, 260],
+    [50, 280],
+    [55, 300],
+    [60, 320],
+])
+y = np.array([0, 0, 0, 1, 1, 1, 1, 1])  # 0 = no disease, 1 = disease
+
+# Train the model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X, y)
+
+# Prediction function
+def predict_disease(age, cholesterol):
+    input_data = np.array([[age, cholesterol]])
+    pred = model.predict(input_data)[0]
+    prob = model.predict_proba(input_data)[0][1]
+    status = "Disease Detected 🧬" if pred == 1 else "No Disease ✅"
+    return f"{status} (Probability: {prob:.2f})"
+
+# Gradio Interface
+iface = gr.Interface(
+    fn=predict_disease,
+    inputs=[
+        gr.Number(label="Age"),
+        gr.Number(label="Cholesterol Level"),
+    ],
+    outputs=gr.Textbox(label="Prediction"),
+    title="Random Forest Disease Predictor",
+    description="Enter age and cholesterol level to predict disease likelihood."
+)
+
+# Launch
+iface.launch()
