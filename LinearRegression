@@ -1,0 +1,31 @@
+!pip install gradio
+
+import numpy as np
+from sklearn.linear_model import LinearRegression
+import gradio as gr
+
+# Training data
+X = np.array([[1], [2], [3], [4], [5]])
+y = np.array([1, 3, 2, 3, 5])
+
+# Train the model
+model = LinearRegression()
+model.fit(X, y)
+
+# Prediction function
+def predict_price(x_value):
+    x_array = np.array([[x_value]])
+    prediction = model.predict(x_array)
+    return float(prediction[0])
+
+# Gradio interface
+iface = gr.Interface(
+    fn=predict_price,
+    inputs=gr.Number(label="Enter X value"),
+    outputs=gr.Number(label="Predicted Y value"),
+    title="Linear Regression Predictor",
+    description="Enter an X value to get a predicted Y using the trained linear regression model."
+)
+
+# Launch the app
+iface.launch()
