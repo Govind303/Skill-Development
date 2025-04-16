@@ -1,0 +1,42 @@
+from youtube_transcript_api import YouTubeTranscriptApi
+from transformers import pipeline
+
+# Get transcript from YouTube video
+def get_transcript(video_id):
+    try:
+        transcript = YouTubeTranscriptApi.get_transcript(video_id)
+        text = " ".join([entry['text'] for entry in transcript])
+        return text
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# Summarize the transcript
+def summarize_text(text, max_chunk_len=1000):
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    chunks = [text[i:i+max_chunk_len] for i in range(0, len(text), max_chunk_len)]
+    summary = ""
+    for chunk in chunks:
+        summary_piece = summarizer(chunk, max_length=130, min_length=30, do_sample=False)[0]['summary_text']
+        summary += summary_piece + " "
+    return summary
+
+# Main function
+def summarize_youtube_video(video_url):
+    # Extract video ID
+    if "v=" in video_url:
+        video_id = video_url.split("v=")[1].split("&")[0]
+    elif "youtu.be/" in video_url:
+        video_id = video_url.split("youtu.be/")[1].split("?")[0]
+    else:
+        return "Invalid URL format."
+
+    transcript = get_transcript(video_id)
+    if transcript.startswith("Error:"):
+        return transcript
+
+    summary = summarize_text(transcript)
+    return summary
+
+# Example usage
+video_url = "https://www.youtube.com/watch?v=e3fz3dqhN44"
+print(summarize_youtube_video(video_url))
